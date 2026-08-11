@@ -46,8 +46,6 @@ def _try_insertion_at(query: str, sentence: str, pos: int) -> Match | None:
     if len(window) < len(query) - 1:
         return None
 
-    differences = []
-
     for i in range(len(query)):
         query_without_i = query[:i] + query[i+1:]
         if query_without_i == window:
