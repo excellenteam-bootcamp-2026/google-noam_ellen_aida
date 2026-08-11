@@ -19,7 +19,7 @@ def find_best_match_score(normalized_prefix: str, normalized_sentence: str) -> i
 def _try_exact_match_at(query: str, sentence: str, pos: int) -> Match | None:
     """Check if query matches exactly starting at pos."""
     if query == sentence[pos:pos+len(query)]:
-        return Match(edit_type="exact", edit_position=None, query_length=len(query))
+        return Match(edit_type="exact", edit_position=None, matching_letters=len(query))
     return None
     
 def _try_substitution_at(query: str, sentence: str, pos: int) -> Match | None:
@@ -36,7 +36,7 @@ def _try_substitution_at(query: str, sentence: str, pos: int) -> Match | None:
             differences.append(i)
     
     if len(differences) == 1:
-        return Match(edit_type="substitution", edit_position=differences[0], query_length=len(query))
+        return Match(edit_type="substitution", edit_position=differences[0], matching_letters=len(query))
     return None
 
 def _try_insertion_at(query: str, sentence: str, pos: int) -> Match | None:
@@ -49,7 +49,7 @@ def _try_insertion_at(query: str, sentence: str, pos: int) -> Match | None:
     for i in range(len(query)):
         query_without_i = query[:i] + query[i+1:]
         if query_without_i == window:
-            return Match(edit_type="insertion", edit_position=i, query_length=len(query))
+            return Match(edit_type="insertion", edit_position=i, matching_letters=len(query) - 1)
     return None
 
 def _try_deletion_at(query: str, sentence: str, pos: int) -> Match | None:
@@ -62,5 +62,5 @@ def _try_deletion_at(query: str, sentence: str, pos: int) -> Match | None:
     for i in range(len(window)):
         window_without_i = window[:i] + window[i+1:]
         if query == window_without_i:
-            return Match(edit_type="deletion", edit_position=i, query_length=len(query))
+            return Match(edit_type="deletion", edit_position=i, matching_letters=len(query))
     return None
