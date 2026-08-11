@@ -1,12 +1,12 @@
 """Tests for the matcher module."""
 
-from autocomplete.models import Match
+# noinspection PyProtectedMember
 from autocomplete.matcher import (
-    find_best_match_score,
-    _try_exact_match_at,
-    _try_substitution_at,
-    _try_insertion_at,
     _try_deletion_at,
+    _try_exact_match_at,
+    _try_insertion_at,
+    _try_substitution_at,
+    find_best_match_score,
 )
 
 

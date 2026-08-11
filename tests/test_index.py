@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -57,8 +58,10 @@ def test_empty_index_round_trip(tmp_path):
 
 
 def test_build_index_rejects_non_record():
+    invalid_record = cast(SentenceRecord, object())
+
     with pytest.raises(TypeError, match="SentenceRecord"):
-        build_index([object()])
+        build_index([invalid_record])
 
 
 def test_missing_index_file_raises_file_not_found(tmp_path):

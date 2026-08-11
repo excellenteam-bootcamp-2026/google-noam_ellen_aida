@@ -34,7 +34,7 @@ def test_cli_accumulates_input_and_resets(monkeypatch, capsys) -> None:
     entered_values = iter(["to be", " or not", "#"])
     searched_prefixes: list[str] = []
 
-    def fake_input(prompt: str) -> str:
+    def fake_input(_prompt: str) -> str:
         try:
             return next(entered_values)
         except StopIteration as error:
