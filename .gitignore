@@ -36,6 +36,12 @@ data/index/
 data/cache/
 data/processed/
 
+data/raw/*
+!data/raw/.gitkeep
+
+data/prepared/*
+!data/prepared/.gitkeep
+
 # Dataset (do not commit Archive.zip or extracted text files)
 data/Archive*/
 data/*.zip
@@ -67,3 +73,6 @@ Desktop.ini
 *.temp
 tmp/
 temp/
+
+# Cursor
+.cursor/
