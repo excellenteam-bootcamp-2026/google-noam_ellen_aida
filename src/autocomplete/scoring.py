@@ -2,7 +2,7 @@ from autocomplete.models import Match
 
 def calculate_score(match: Match) -> int:
     """Calculate the score for a match."""
-    base_score = 2 *match.query_length
+    base_score = 2 * match.query_length
 
     if match.edit_type == "exact":
         return base_score
