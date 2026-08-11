@@ -73,3 +73,6 @@ Desktop.ini
 *.temp
 tmp/
 temp/
+
+# Cursor
+.cursor/
