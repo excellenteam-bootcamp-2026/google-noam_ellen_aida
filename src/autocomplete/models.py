@@ -34,3 +34,15 @@ class PreparedSentenceIndex:
     """Prepared records persisted by the Phase A data pipeline."""
 
     records: Tuple[SentenceRecord, ...]
+
+
+@dataclass
+class Match:
+    """Represents a successful match between query and sentence window.
+    
+    Used internally by matcher and scoring modules to communicate match details.
+    """
+    
+    edit_type: str  # "exact", "substitution", "insertion", "deletion"
+    edit_position: int | None  # 0-based index in query where edit occurred; None for exact
+    query_length: int  # Length of original query for base score calculation
