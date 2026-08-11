@@ -3,6 +3,7 @@ import pytest
 from autocomplete.models import SentenceRecord
 from autocomplete.normalization import normalize_text
 
+from typing import cast
 
 def test_empty_string_returns_empty_string():
     assert normalize_text("") == ""
@@ -60,5 +61,7 @@ def test_unicode_case_uses_lower_not_casefold():
 
 
 def test_non_string_values_raise_type_error():
-    with pytest.raises(TypeError):
-        normalize_text(None)
+    invalid_text = cast(str, None)
+
+    with pytest.raises(TypeError, match="expects a str"):
+        normalize_text(invalid_text)

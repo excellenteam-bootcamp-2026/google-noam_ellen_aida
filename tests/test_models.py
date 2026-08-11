@@ -1,17 +1,25 @@
-from dataclasses import fields, is_dataclass
+from dataclasses import is_dataclass
+from typing import get_type_hints
 
 from autocomplete.models import AutoCompleteData, SentenceRecord
 
 
 def test_sentence_record_model_contract():
-    assert is_dataclass(SentenceRecord)
-    assert [field.name for field in fields(SentenceRecord)] == [
+    record = SentenceRecord(
+        original_text="Example",
+        normalized_text="example",
+        source_path="source.txt",
+        line_number=1,
+    )
+
+    assert is_dataclass(record)
+    assert list(vars(record)) == [
         "original_text",
         "normalized_text",
         "source_path",
         "line_number",
     ]
-    assert [field.type for field in fields(SentenceRecord)] == [
+    assert list(get_type_hints(SentenceRecord).values()) == [
         str,
         str,
         str,
@@ -20,14 +28,21 @@ def test_sentence_record_model_contract():
 
 
 def test_auto_complete_data_model_contract():
-    assert is_dataclass(AutoCompleteData)
-    assert [field.name for field in fields(AutoCompleteData)] == [
+    result = AutoCompleteData(
+        completed_sentence="Example",
+        source_text="source.txt",
+        offset=1,
+        score=10,
+    )
+
+    assert is_dataclass(result)
+    assert list(vars(result)) == [
         "completed_sentence",
         "source_text",
         "offset",
         "score",
     ]
-    assert [field.type for field in fields(AutoCompleteData)] == [
+    assert list(get_type_hints(AutoCompleteData).values()) == [
         str,
         str,
         int,
