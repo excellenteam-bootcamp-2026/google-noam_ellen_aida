@@ -13,15 +13,15 @@ def _load_index(index_path: Path) -> Iterable[SentenceRecord]:
 
     from .index import load_index
 
-    return load_index(index_path)
+    return load_index(index_path).records
 
 
 def _normalize(text: str) -> str:
     """Normalize text through the shared normalization component."""
 
-    from .normalization import normalize
+    from .normalization import normalize_text
 
-    return normalize(text)
+    return normalize_text(text)
 
 
 def _find_best_match_score(prefix: str, sentence: str) -> int | None:
