@@ -1,0 +1,12 @@
+Alpha begins here
+Middle alpha token
+Ends with omega
+word
+word
+Same duplicate
+Same duplicate
+Punctuated hello-world
+spaced words match
+repeater repeat repeat
+alpha one
+alpha two
