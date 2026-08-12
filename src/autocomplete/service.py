@@ -52,12 +52,18 @@ def get_best_k_completions(prefix: str) -> list[AutoCompleteData]:
     if _records is None:
         raise RuntimeError("Autocomplete service has not been initialized")
 
+    return search_records(prefix, _records)
+
+
+def search_records(prefix: str, records: Iterable[SentenceRecord]) -> list[AutoCompleteData]:
+    """Return the five highest-ranked completions from already loaded records."""
+
     normalized_prefix = _normalize(prefix)
     if not normalized_prefix:
         return []
 
     results: list[AutoCompleteData] = []
-    for record in _records:
+    for record in records:
         score = _find_best_match_score(
             normalized_prefix,
             record.normalized_text,
