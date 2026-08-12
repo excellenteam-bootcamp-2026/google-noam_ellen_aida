@@ -169,7 +169,7 @@ def test_current_service_matches_oracle_for_representative_queries(monkeypatch) 
         assert service.get_best_k_completions(query) == linear_autocomplete(query, records)
 
 
-def test_current_service_documents_repeated_extra_character_disagreement(monkeypatch) -> None:
+def test_current_service_matches_oracle_for_repeated_extra_character(monkeypatch) -> None:
     records = [make_record("word", "a.txt", 1)]
     monkeypatch.setattr(service, "_records", records)
 
@@ -177,7 +177,7 @@ def test_current_service_documents_repeated_extra_character_disagreement(monkeyp
     actual = service.get_best_k_completions("wordd")
 
     assert expected == [AutoCompleteData("word", "a.txt", 1, 6)]
-    assert actual == [AutoCompleteData("word", "a.txt", 1, 4)]
+    assert actual == expected
 
 
 def test_linear_oracle_stable_across_repeated_runs() -> None:
