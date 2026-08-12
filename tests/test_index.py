@@ -53,10 +53,11 @@ def test_multiple_record_round_trip_preserves_order(tmp_path):
 
 def test_empty_index_round_trip(tmp_path):
     index_path = tmp_path / "index.json"
+    data = build_index([])
 
-    save_index(build_index([]), index_path)
+    save_index(data, index_path)
 
-    assert load_index(index_path) == PreparedSentenceIndex(records=())
+    assert load_index(index_path) == data
 
 
 def test_build_index_rejects_non_record():
