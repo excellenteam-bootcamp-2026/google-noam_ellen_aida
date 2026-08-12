@@ -1,6 +1,7 @@
 """Shared data models for the autocomplete project."""
 
 from dataclasses import dataclass
+from array import array
 from typing import Tuple
 
 
@@ -30,10 +31,20 @@ class AutoCompleteData:
 
 
 @dataclass(frozen=True)
+class NGramInvertedIndex:
+    """Record-id postings for character n-gram candidate generation."""
+
+    ngram_sizes: Tuple[int, ...]
+    min_query_length: int
+    postings: dict[int, dict[str, array]]
+
+
+@dataclass(frozen=True)
 class PreparedSentenceIndex:
     """Prepared records persisted by the Phase A data pipeline."""
 
     records: Tuple[SentenceRecord, ...]
+    ngram_index: NGramInvertedIndex | None = None
 
 
 @dataclass
@@ -44,5 +55,6 @@ class Match:
     """
     
     edit_type: str  # "exact", "substitution", "insertion", "deletion"
-    edit_position: int | None  # 0-based index in query where edit occurred; None for exact
+    # 0-based index in query where edit occurred; None for exact.
+    edit_position: int | None
     matching_letters: int  # Length of the matching substring
