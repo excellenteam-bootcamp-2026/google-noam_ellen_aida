@@ -82,4 +82,7 @@ def get_best_k_completions(prefix: str) -> list[AutoCompleteData]:
             result.offset,
         )
     )
+
+    print(f"Records checked: {records_checked:,}")
+    print(f"Matching records: {matching_records:,}")
     return results[:5]
