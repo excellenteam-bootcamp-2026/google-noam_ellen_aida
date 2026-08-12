@@ -211,6 +211,8 @@ def test_pdf_example_sentence():
     assert score == 12  # 2×6
 
 
+# Person 2 regression tests (search-oracle mismatches)
+
 def test_empty_query_returns_no_match():
     """An empty query should not produce a completion score."""
     score = find_best_match_score("", "hello world")
