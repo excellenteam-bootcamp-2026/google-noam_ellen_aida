@@ -1,5 +1,6 @@
 """Integration layer for autocomplete initialization and querying."""
 
+import time
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -34,13 +35,32 @@ def _find_best_match_score(prefix: str, sentence: str) -> int | None:
     return find_best_match_score(prefix, sentence)
 
 
+def _reset_matcher_timing() -> None:
+    """Reset the matcher's per-phase timing totals through the matching component."""
+
+    from .matcher import reset_timing
+
+    reset_timing()
+
+
+def _print_matcher_timing() -> None:
+    """Print the matcher's per-phase timing totals through the matching component."""
+
+    from .matcher import print_timing
+
+    print_timing()
+
+
 def initialize(index_path: Path) -> None:
     """Load the prepared sentence index used by subsequent queries."""
 
     if not index_path.is_file():
         raise FileNotFoundError(f"Prepared index not found: {index_path}")
 
+    load_start_time = time.perf_counter()
     loaded_records = list(_load_index(index_path))
+    load_elapsed_seconds = time.perf_counter() - load_start_time
+    print(f"_load_index took {load_elapsed_seconds:.4f} sec")
     if not all(isinstance(record, SentenceRecord) for record in loaded_records):
         raise TypeError("The prepared index must contain SentenceRecord objects")
 
@@ -84,11 +104,39 @@ def search_records(
                 continue
 
             yield AutoCompleteData(
+    start_time = time.perf_counter()
+
+    normalize_start_time = time.perf_counter()
+    normalized_prefix = _normalize(prefix)
+    normalize_elapsed_seconds = time.perf_counter() - normalize_start_time
+    print(f"_normalize took {normalize_elapsed_seconds:.4f} sec")
+    if not normalized_prefix:
+        return []
+
+    _reset_matcher_timing()
+
+    results: list[AutoCompleteData] = []
+    matching_elapsed_seconds = 0.0
+    for record in _records:
+        matching_start_time = time.perf_counter()
+        score = _find_best_match_score(
+            normalized_prefix,
+            record.normalized_text,
+        )
+        matching_elapsed_seconds += time.perf_counter() - matching_start_time
+        if score is None:
+            continue
+
+        results.append(
+            AutoCompleteData(
                 completed_sentence=record.original_text,
                 source_text=record.source_path,
                 offset=record.line_number,
                 score=score,
             )
+        )
+    print(f"_find_best_match_score took {matching_elapsed_seconds:.4f} sec total")
+    _print_matcher_timing()
 
     return heapq.nsmallest(
         5,
@@ -100,3 +148,9 @@ def search_records(
             result.offset,
         ),
     )
+
+    elapsed_seconds = time.perf_counter() - start_time
+    print(f"Records checked: {len(_records):,}")
+    print(f"Matching records: {len(results):,}")
+    print(f"Search took {elapsed_seconds:.4f} sec")
+    return results[:5]
