@@ -87,23 +87,6 @@ def search_records(
     best five. A size-five heap is used so all matching results do not need to
     be stored and sorted together.
     """
-    normalized_prefix = _normalize(prefix)
-
-    if not normalized_prefix:
-        return []
-
-    def matching_results() -> Iterable[AutoCompleteData]:
-        """Generate matching results one at a time."""
-        for record in records:
-            score = _find_best_match_score(
-                normalized_prefix,
-                record.normalized_text,
-            )
-
-            if score is None:
-                continue
-
-            yield AutoCompleteData(
     start_time = time.perf_counter()
 
     normalize_start_time = time.perf_counter()
@@ -115,30 +98,33 @@ def search_records(
 
     _reset_matcher_timing()
 
-    results: list[AutoCompleteData] = []
+    record_list = list(records)
     matching_elapsed_seconds = 0.0
-    for record in _records:
-        matching_start_time = time.perf_counter()
-        score = _find_best_match_score(
-            normalized_prefix,
-            record.normalized_text,
-        )
-        matching_elapsed_seconds += time.perf_counter() - matching_start_time
-        if score is None:
-            continue
+    matching_records_count = 0
 
-        results.append(
-            AutoCompleteData(
+    def matching_results() -> Iterable[AutoCompleteData]:
+        """Generate matching results one at a time."""
+        nonlocal matching_elapsed_seconds, matching_records_count
+        for record in record_list:
+            matching_start_time = time.perf_counter()
+            score = _find_best_match_score(
+                normalized_prefix,
+                record.normalized_text,
+            )
+            matching_elapsed_seconds += time.perf_counter() - matching_start_time
+
+            if score is None:
+                continue
+
+            matching_records_count += 1
+            yield AutoCompleteData(
                 completed_sentence=record.original_text,
                 source_text=record.source_path,
                 offset=record.line_number,
                 score=score,
             )
-        )
-    print(f"_find_best_match_score took {matching_elapsed_seconds:.4f} sec total")
-    _print_matcher_timing()
 
-    return heapq.nsmallest(
+    top_five = heapq.nsmallest(
         5,
         matching_results(),
         key=lambda result: (
@@ -149,8 +135,11 @@ def search_records(
         ),
     )
 
+    print(f"_find_best_match_score took {matching_elapsed_seconds:.4f} sec total")
+    _print_matcher_timing()
+
     elapsed_seconds = time.perf_counter() - start_time
-    print(f"Records checked: {len(_records):,}")
-    print(f"Matching records: {len(results):,}")
+    print(f"Records checked: {len(record_list):,}")
+    print(f"Matching records: {matching_records_count:,}")
     print(f"Search took {elapsed_seconds:.4f} sec")
-    return results[:5]
+    return top_five
