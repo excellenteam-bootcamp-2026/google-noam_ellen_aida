@@ -31,10 +31,15 @@ def save_index(data: PreparedSentenceIndex, path: PathInput) -> None:
     target = _coerce_path(path)
     payload = _data_to_payload(data)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    with target.open("w", encoding="utf-8") as handle:
+        json.dump(
+            payload,
+            handle,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        handle.write("\n")
 
 
 def load_index(path: PathInput) -> PreparedSentenceIndex:

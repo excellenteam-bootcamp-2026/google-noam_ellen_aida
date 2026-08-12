@@ -181,6 +181,23 @@ def test_find_best_match_prefers_better_score():
     assert score == 4  # Best is exact match
 
 
+def test_find_best_match_keeps_zero_score_when_later_scores_are_lower():
+    score = find_best_match_score("aa", "abcde")
+
+    assert score == 0
+
+
+def test_find_best_match_repeated_extra_query_character_regressions():
+    assert find_best_match_score("wordd", "word") == 6
+    assert find_best_match_score("woord", "word") == 2
+    assert find_best_match_score("aaa", "aa") == -2
+
+
+def test_find_best_match_repeated_and_zero_score_regressions():
+    assert find_best_match_score("ab", "aa") == 0
+    assert find_best_match_score("aab", "abcde") == -4
+
+
 def test_pdf_example_sentence():
     """Test with actual PDF example sentence."""
     sentence = "to be or not to be that is the question"
@@ -193,8 +210,6 @@ def test_pdf_example_sentence():
     score = find_best_match_score("or not", sentence)
     assert score == 12  # 2×6
 
-
-# Person 2 regression tests (search-oracle mismatches)
 
 def test_empty_query_returns_no_match():
     """An empty query should not produce a completion score."""
