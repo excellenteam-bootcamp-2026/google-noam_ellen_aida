@@ -3,23 +3,16 @@
 from __future__ import annotations
 
 import json
-from array import array
 from json import JSONDecodeError
 from os import PathLike
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
-from autocomplete.models import (
-    NGramInvertedIndex,
-    PreparedSentenceIndex,
-    SentenceRecord,
-)
-from autocomplete.ngram import build_ngram_index
+from autocomplete.models import PreparedSentenceIndex, SentenceRecord
 
 
 INDEX_FORMAT = "autocomplete-index"
-INDEX_VERSION = 2
-LEGACY_INDEX_VERSION = 1
+INDEX_VERSION = 1
 PathInput = str | PathLike[str]
 
 
@@ -29,10 +22,7 @@ def build_index(records: Iterable[SentenceRecord]) -> PreparedSentenceIndex:
     prepared_records = tuple(records)
     for record in prepared_records:
         _validate_record(record)
-    return PreparedSentenceIndex(
-        records=prepared_records,
-        ngram_index=build_ngram_index(prepared_records),
-    )
+    return PreparedSentenceIndex(records=prepared_records)
 
 
 def save_index(data: PreparedSentenceIndex, path: PathInput) -> None:
@@ -71,28 +61,10 @@ def _data_to_payload(data: PreparedSentenceIndex) -> Dict[str, Any]:
     if not isinstance(data, PreparedSentenceIndex):
         raise TypeError("save_index() expects PreparedSentenceIndex")
 
-    ngram_index = data.ngram_index or build_ngram_index(data.records)
     return {
         "format": INDEX_FORMAT,
         "version": INDEX_VERSION,
-        "ngram_index": _ngram_index_to_payload(ngram_index),
         "records": [_record_to_payload(record) for record in data.records],
-    }
-
-
-def _ngram_index_to_payload(index: NGramInvertedIndex | None) -> Dict[str, Any]:
-    if index is None:
-        raise TypeError("NGramInvertedIndex payload cannot be built from None")
-    return {
-        "min_query_length": index.min_query_length,
-        "ngram_sizes": list(index.ngram_sizes),
-        "postings": {
-            str(size): {
-                gram: list(record_ids)
-                for gram, record_ids in sorted(size_postings.items())
-            }
-            for size, size_postings in sorted(index.postings.items())
-        },
     }
 
 
@@ -122,18 +94,13 @@ def _validate_record(record: SentenceRecord) -> None:
 def _payload_to_data(payload: Any) -> PreparedSentenceIndex:
     if not isinstance(payload, dict):
         raise ValueError("Index payload must be a JSON object")
-    unexpected_fields = set(payload).difference(
-        {"format", "version", "records", "ngram_index"}
-    )
+    unexpected_fields = set(payload).difference({"format", "version", "records"})
     if unexpected_fields:
         unexpected = ", ".join(sorted(unexpected_fields))
         raise ValueError(f"Index payload has unexpected field(s): {unexpected}")
     if payload.get("format") != INDEX_FORMAT:
         raise ValueError("Unsupported index format")
-    if type(payload.get("version")) is not int:
-        raise ValueError("Unsupported index version")
-    version = payload["version"]
-    if version not in (LEGACY_INDEX_VERSION, INDEX_VERSION):
+    if type(payload.get("version")) is not int or payload["version"] != INDEX_VERSION:
         raise ValueError("Unsupported index version")
 
     records_payload = payload.get("records")
@@ -141,94 +108,7 @@ def _payload_to_data(payload: Any) -> PreparedSentenceIndex:
         raise ValueError("Index payload must contain a records list")
 
     records = [_payload_to_record(record_payload) for record_payload in records_payload]
-    prepared_records = tuple(records)
-    if version == LEGACY_INDEX_VERSION:
-        return PreparedSentenceIndex(
-            records=prepared_records,
-            ngram_index=build_ngram_index(prepared_records),
-        )
-
-    return PreparedSentenceIndex(
-        records=prepared_records,
-        ngram_index=_payload_to_ngram_index(
-            payload.get("ngram_index"),
-            record_count=len(prepared_records),
-        ),
-    )
-
-
-def _payload_to_ngram_index(
-    payload: Any,
-    *,
-    record_count: int,
-) -> NGramInvertedIndex:
-    if not isinstance(payload, dict):
-        raise ValueError("Index payload must contain an ngram_index object")
-    unexpected_fields = set(payload).difference(
-        {"min_query_length", "ngram_sizes", "postings"}
-    )
-    if unexpected_fields:
-        unexpected = ", ".join(sorted(unexpected_fields))
-        raise ValueError(f"ngram_index has unexpected field(s): {unexpected}")
-
-    min_query_length = payload.get("min_query_length")
-    if type(min_query_length) is not int or min_query_length < 1:
-        raise ValueError("ngram_index min_query_length must be a positive integer")
-
-    ngram_sizes = payload.get("ngram_sizes")
-    if (
-        not isinstance(ngram_sizes, list)
-        or not ngram_sizes
-        or any(type(size) is not int or size < 1 for size in ngram_sizes)
-    ):
-        raise ValueError("ngram_index ngram_sizes must be positive integers")
-
-    postings_payload = payload.get("postings")
-    if not isinstance(postings_payload, dict):
-        raise ValueError("ngram_index postings must be an object")
-
-    postings: dict[int, dict[str, array]] = {}
-    for size in ngram_sizes:
-        size_key = str(size)
-        size_postings_payload = postings_payload.get(size_key)
-        if not isinstance(size_postings_payload, dict):
-            raise ValueError(f"ngram_index postings missing size {size_key}")
-        size_postings: dict[str, array] = {}
-        for gram, record_ids_payload in size_postings_payload.items():
-            if not isinstance(gram, str) or len(gram) != size:
-                raise ValueError("ngram_index posting gram has invalid size")
-            size_postings[gram] = _payload_to_posting_ids(
-                record_ids_payload,
-                record_count=record_count,
-            )
-        postings[size] = dict(sorted(size_postings.items()))
-
-    return NGramInvertedIndex(
-        ngram_sizes=tuple(ngram_sizes),
-        min_query_length=min_query_length,
-        postings=postings,
-    )
-
-
-def _payload_to_posting_ids(
-    payload: Any,
-    *,
-    record_count: int,
-) -> array:
-    if not isinstance(payload, list):
-        raise ValueError("ngram_index posting IDs must be a list")
-    posting = array("I")
-    previous = -1
-    for record_id in payload:
-        if type(record_id) is not int:
-            raise ValueError("ngram_index posting IDs must be integers")
-        if record_id <= previous:
-            raise ValueError("ngram_index posting IDs must be sorted and unique")
-        if record_id < 0 or record_id >= record_count:
-            raise ValueError("ngram_index posting ID out of range")
-        posting.append(record_id)
-        previous = record_id
-    return posting
+    return PreparedSentenceIndex(records=tuple(records))
 
 
 def _payload_to_record(payload: Any) -> SentenceRecord:
