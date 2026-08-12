@@ -3,6 +3,8 @@
 from collections.abc import Iterable
 from pathlib import Path
 
+import heapq
+
 from .models import AutoCompleteData, SentenceRecord
 
 _records: list[SentenceRecord] | None = None
@@ -61,52 +63,40 @@ def search_records(
 ) -> list[AutoCompleteData]:
     """Return the five highest-ranked completions from loaded records.
 
-    This temporary diagnostic version also reports how many records were
-    checked and how many produced a valid match.
+    Every record is checked so that the final results are guaranteed to be the
+    best five. A size-five heap is used so all matching results do not need to
+    be stored and sorted together.
     """
     normalized_prefix = _normalize(prefix)
 
     if not normalized_prefix:
-        print("Records checked: 0")
-        print("Matching records: 0")
         return []
 
-    results: list[AutoCompleteData] = []
-    records_checked = 0
-    matching_records = 0
+    def matching_results() -> Iterable[AutoCompleteData]:
+        """Generate matching results one at a time."""
+        for record in records:
+            score = _find_best_match_score(
+                normalized_prefix,
+                record.normalized_text,
+            )
 
-    for record in records:
-        records_checked += 1
+            if score is None:
+                continue
 
-        score = _find_best_match_score(
-            normalized_prefix,
-            record.normalized_text,
-        )
-
-        if score is None:
-            continue
-
-        matching_records += 1
-
-        results.append(
-            AutoCompleteData(
+            yield AutoCompleteData(
                 completed_sentence=record.original_text,
                 source_text=record.source_path,
                 offset=record.line_number,
                 score=score,
             )
-        )
 
-    results.sort(
+    return heapq.nsmallest(
+        5,
+        matching_results(),
         key=lambda result: (
             -result.score,
             result.completed_sentence.casefold(),
             result.source_text.casefold(),
             result.offset,
-        )
+        ),
     )
-
-    print(f"Records checked: {records_checked:,}")
-    print(f"Matching records: {matching_records:,}")
-
-    return results[:5]
