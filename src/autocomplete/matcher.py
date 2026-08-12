@@ -129,8 +129,8 @@ def _find_candidate_starts(query: str, sentence: str) -> set[int]:
     # Anchor searching is not useful for very short queries. Checking every
     # sentence position is inexpensive in this case and avoids empty or
     # one-character anchors.
-   # if len(query) < 2:
-   #     return set(range(len(sentence)))
+    if len(query) < 4:
+        return set(range(len(sentence)))
 
     middle = len(query) // 2
 

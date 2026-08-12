@@ -1,5 +1,6 @@
 """Integration layer for autocomplete initialization and querying."""
 
+import time
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
@@ -89,16 +90,23 @@ def search_index(
 ) -> list[AutoCompleteData]:
     """Return completions using n-gram candidates and canonical verification."""
 
+    normalize_start_time = time.perf_counter()
     normalized_prefix = _normalize(prefix)
+    normalize_elapsed_seconds = time.perf_counter() - normalize_start_time
+    print(f"_normalize took {normalize_elapsed_seconds:.4f} sec")
 
     if not normalized_prefix:
         return []
 
+    candidates_start_time = time.perf_counter()
     candidates = candidate_record_ids(
         normalized_prefix,
         prepared_index.records,
         prepared_index.ngram_index,
     )
+    candidates_elapsed_seconds = time.perf_counter() - candidates_start_time
+    print(f"candidate_record_ids took {candidates_elapsed_seconds:.4f} sec")
+
     return _search_candidate_ids(normalized_prefix, prepared_index.records, candidates)
 
 
@@ -110,6 +118,7 @@ def search_records(
 
     This is the canonical linear baseline used for correctness comparison.
     """
+    normalize_start_time = time.perf_counter()
     normalized_prefix = _normalize(prefix)
     normalize_elapsed_seconds = time.perf_counter() - normalize_start_time
     print(f"_normalize took {normalize_elapsed_seconds:.4f} sec")
@@ -129,14 +138,17 @@ def _search_candidate_ids(
     records: Iterable[SentenceRecord],
     record_ids: Iterable[int],
 ) -> list[AutoCompleteData]:
+    start_time = time.perf_counter()
     record_tuple = records if isinstance(records, tuple) else tuple(records)
     results: list[AutoCompleteData] = []
     seen_record_ids: set[int] = set()
+    matching_elapsed_seconds = 0.0
     for record_id in record_ids:
         if record_id in seen_record_ids:
             continue
         seen_record_ids.add(record_id)
         record = record_tuple[record_id]
+        matching_start_time = time.perf_counter()
         score = _find_best_match_score(
             normalized_prefix,
             record.normalized_text,
@@ -166,7 +178,7 @@ def _search_candidate_ids(
     )
 
     elapsed_seconds = time.perf_counter() - start_time
-    print(f"Records checked: {len(_records):,}")
+    print(f"Records checked: {len(record_tuple):,}")
     print(f"Matching records: {len(results):,}")
     print(f"Search took {elapsed_seconds:.4f} sec")
     return results[:5]
