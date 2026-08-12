@@ -4,6 +4,8 @@ import time
 from collections.abc import Iterable
 from pathlib import Path
 
+import heapq
+
 from .models import AutoCompleteData, SentenceRecord
 
 _records: list[SentenceRecord] | None = None
@@ -72,6 +74,36 @@ def get_best_k_completions(prefix: str) -> list[AutoCompleteData]:
     if _records is None:
         raise RuntimeError("Autocomplete service has not been initialized")
 
+    return search_records(prefix, _records)
+
+
+def search_records(
+    prefix: str,
+    records: Iterable[SentenceRecord],
+) -> list[AutoCompleteData]:
+    """Return the five highest-ranked completions from loaded records.
+
+    Every record is checked so that the final results are guaranteed to be the
+    best five. A size-five heap is used so all matching results do not need to
+    be stored and sorted together.
+    """
+    normalized_prefix = _normalize(prefix)
+
+    if not normalized_prefix:
+        return []
+
+    def matching_results() -> Iterable[AutoCompleteData]:
+        """Generate matching results one at a time."""
+        for record in records:
+            score = _find_best_match_score(
+                normalized_prefix,
+                record.normalized_text,
+            )
+
+            if score is None:
+                continue
+
+            yield AutoCompleteData(
     start_time = time.perf_counter()
 
     normalize_start_time = time.perf_counter()
@@ -106,13 +138,15 @@ def get_best_k_completions(prefix: str) -> list[AutoCompleteData]:
     print(f"_find_best_match_score took {matching_elapsed_seconds:.4f} sec total")
     _print_matcher_timing()
 
-    results.sort(
+    return heapq.nsmallest(
+        5,
+        matching_results(),
         key=lambda result: (
             -result.score,
             result.completed_sentence.casefold(),
             result.source_text.casefold(),
             result.offset,
-        )
+        ),
     )
 
     elapsed_seconds = time.perf_counter() - start_time

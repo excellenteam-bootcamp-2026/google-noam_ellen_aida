@@ -7,6 +7,8 @@ import pytest
 from autocomplete.index import build_index, load_index, save_index
 from autocomplete.loader import load_sentence_records
 from autocomplete.models import PreparedSentenceIndex, SentenceRecord
+from autocomplete.service import search_records
+from reference_oracle import linear_autocomplete
 
 
 def test_build_index_from_fixture_directory():
@@ -261,3 +263,38 @@ def test_deterministic_serialized_output(tmp_path):
 
     assert first.read_text(encoding="utf-8") == second.read_text(encoding="utf-8")
     assert "Hello" in first.read_text(encoding="utf-8")
+
+
+def test_save_load_search_equivalence_matches_oracle(tmp_path):
+    records = [
+        SentenceRecord("word", "word", "a.txt", 1),
+        SentenceRecord("word", "word", "a.txt", 2),
+        SentenceRecord("word", "word", "b.txt", 1),
+        SentenceRecord("alpha one", "alpha one", "c.txt", 1),
+        SentenceRecord("alpha two", "alpha two", "c.txt", 2),
+        SentenceRecord("alpha three", "alpha three", "c.txt", 3),
+        SentenceRecord("alpha four", "alpha four", "c.txt", 4),
+        SentenceRecord("alpha five", "alpha five", "c.txt", 5),
+        SentenceRecord("alpha six", "alpha six", "c.txt", 6),
+    ]
+    queries = ("word", "wprd", "wrd", "wordd", "alpha", "missing")
+    index_path = tmp_path / "index.json"
+
+    before = {query: search_records(query, records) for query in queries}
+    save_index(build_index(records), index_path)
+    loaded_records = list(load_index(index_path).records)
+    after = {query: search_records(query, loaded_records) for query in queries}
+    oracle = {query: linear_autocomplete(query, records) for query in queries}
+
+    assert after == before
+    assert after == oracle
+
+
+def test_empty_index_search_equivalence(tmp_path):
+    index_path = tmp_path / "empty.json"
+    save_index(build_index([]), index_path)
+
+    loaded_records = list(load_index(index_path).records)
+
+    assert search_records("alpha", loaded_records) == []
+    assert search_records("alpha", loaded_records) == linear_autocomplete("alpha", [])
