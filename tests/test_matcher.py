@@ -18,7 +18,7 @@ def test_exact_match_at_start():
     assert result is not None
     assert result.edit_type == "exact"
     assert result.edit_position is None
-    assert result.query_length == 5
+    assert result.matching_letters == 5
 
 
 def test_exact_match_in_middle():
@@ -27,7 +27,7 @@ def test_exact_match_in_middle():
     assert result is not None
     assert result.edit_type == "exact"
     assert result.edit_position is None
-    assert result.query_length == 2
+    assert result.matching_letters == 2
 
 
 def test_exact_match_no_match():
@@ -50,7 +50,7 @@ def test_substitution_one_difference():
     assert result is not None
     assert result.edit_type == "substitution"
     assert result.edit_position == 1  # 'x' vs 'o'
-    assert result.query_length == 5
+    assert result.matching_letters == 5
 
 
 def test_substitution_no_differences():
@@ -81,7 +81,7 @@ def test_insertion_extra_char_at_start():
     assert result is not None
     assert result.edit_type == "insertion"
     assert result.edit_position == 0
-    assert result.query_length == 3
+    assert result.matching_letters == 2
 
 
 def test_insertion_extra_char_in_middle():
@@ -101,7 +101,7 @@ def test_insertion_extra_char_at_end():
     assert result.edit_type == "insertion"
     # Both position 3 and 4 are valid (both 'd's can be removed)
     assert result.edit_position in [3, 4]
-    assert result.query_length == 5
+    assert result.matching_letters == 4
 
 
 def test_insertion_no_match():
@@ -118,7 +118,7 @@ def test_deletion_missing_char_at_start():
     assert result is not None
     assert result.edit_type == "deletion"
     assert result.edit_position == 0  # Missing 't'
-    assert result.query_length == 4
+    assert result.matching_letters == 4
 
 
 def test_deletion_missing_char_in_middle():
@@ -128,7 +128,7 @@ def test_deletion_missing_char_in_middle():
     assert result.edit_type == "deletion"
     # Position is in the window where the char exists, query is missing it
     assert result.edit_position in [1, 2]  # Could be 'o' position in window
-    assert result.query_length == 3
+    assert result.matching_letters == 3
 
 
 def test_deletion_missing_char_at_end():

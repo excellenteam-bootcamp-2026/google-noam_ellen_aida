@@ -45,4 +45,4 @@ class Match:
     
     edit_type: str  # "exact", "substitution", "insertion", "deletion"
     edit_position: int | None  # 0-based index in query where edit occurred; None for exact
-    query_length: int  # Length of original query for base score calculation
+    matching_letters: int  # Length of the matching substring
