@@ -82,4 +82,5 @@ def get_best_k_completions(prefix: str) -> list[AutoCompleteData]:
             result.offset,
         )
     )
+    print(f"Results: {results}")
     return results[:5]
