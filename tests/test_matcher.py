@@ -2,6 +2,8 @@
 
 # noinspection PyProtectedMember
 from autocomplete.matcher import (
+    _best_skip_position,
+    _find_candidate_starts,
     _try_deletion_at,
     _try_exact_match_at,
     _try_insertion_at,
@@ -207,3 +209,164 @@ def test_pdf_example_sentence():
     # Match at different positions should give same score
     score = find_best_match_score("or not", sentence)
     assert score == 12  # 2×6
+
+
+def test_empty_query_returns_no_match():
+    """An empty query should not produce a completion score."""
+    score = find_best_match_score("", "hello world")
+    assert score is None
+
+
+def test_empty_sentence_returns_no_match():
+    """A nonempty query cannot match an empty sentence."""
+    score = find_best_match_score("hello", "")
+    assert score is None
+
+
+def test_anchor_search_finds_exact_expected_start():
+    """An unchanged anchor should identify the real match position."""
+    sentence = "this is an advanced bash scripting guide"
+    query = "advanced bash"
+
+    candidates = _find_candidate_starts(query, sentence)
+    expected_start = sentence.index("advanced bash")
+
+    assert expected_start in candidates
+
+
+def test_anchor_search_allows_one_position_shift():
+    """Candidate starts should allow insertion and deletion shifts."""
+    sentence = "this is an advanced bash scripting guide"
+    query = "advxanced bash"
+
+    candidates = _find_candidate_starts(query, sentence)
+    expected_start = sentence.index("advanced bash")
+
+    assert expected_start in candidates
+
+
+def test_short_query_checks_all_sentence_positions():
+    """Queries shorter than four characters should use every start."""
+    candidates = _find_candidate_starts("he", "hello")
+
+    assert candidates == {0, 1, 2, 3, 4}
+
+
+def test_best_skip_position_extra_character_at_start():
+    """Two-pointer comparison should detect an extra first character."""
+    position = _best_skip_position("xhello", "hello")
+    assert position == 0
+
+
+def test_best_skip_position_extra_character_at_end():
+    """Two-pointer comparison should detect an extra last character."""
+    position = _best_skip_position("hellox", "hello")
+    assert position == 5
+
+
+def test_best_skip_position_rejects_unrelated_strings():
+    """One skipped character must be enough to make strings equal."""
+    position = _best_skip_position("abcdef", "xyzab")
+    assert position is None
+
+
+def test_repeated_character_insertion_uses_best_position():
+    """Repeated characters should use the latest valid edit position."""
+    result = _try_insertion_at("helllo", "hello world", 0)
+
+    assert result is not None
+    assert result.edit_type == "insertion"
+    assert result.edit_position == 4
+    assert result.matching_letters == 5
+
+
+def test_repeated_character_deletion_uses_best_position():
+    """A missing repeated character should use the best edit position."""
+    result = _try_deletion_at("helo", "hello world", 0)
+
+    assert result is not None
+    assert result.edit_type == "deletion"
+    assert result.edit_position == 3
+    assert result.matching_letters == 4
+
+
+def test_anchor_match_with_substitution_at_start():
+    """The unchanged right anchor should locate the candidate."""
+    score = find_best_match_score(
+        "xdvanced bash",
+        "this is an advanced bash scripting guide",
+    )
+
+    assert score is not None
+
+
+def test_anchor_match_with_substitution_in_middle():
+    """One substituted character should still produce a score."""
+    score = find_best_match_score(
+        "advanced bxsh",
+        "this is an advanced bash scripting guide",
+    )
+
+    assert score is not None
+
+
+def test_anchor_match_with_substitution_at_end():
+    """The unchanged left anchor should locate the candidate."""
+    score = find_best_match_score(
+        "advanced basx",
+        "this is an advanced bash scripting guide",
+    )
+
+    assert score is not None
+
+
+def test_anchor_match_with_extra_query_character():
+    """One extra query character should be recognized as insertion."""
+    score = find_best_match_score(
+        "advxanced bash",
+        "this is an advanced bash scripting guide",
+    )
+
+    assert score is not None
+
+
+def test_anchor_match_with_missing_query_character():
+    """One missing query character should be recognized as deletion."""
+    score = find_best_match_score(
+        "advnced bash",
+        "this is an advanced bash scripting guide",
+    )
+
+    assert score is not None
+
+
+def test_anchor_match_rejects_two_substitutions():
+    """Two changed characters are outside the allowed matching rules."""
+    score = find_best_match_score(
+        "xdvanced bxsh",
+        "this is an advanced bash scripting guide",
+    )
+
+    assert score is None
+
+
+def test_exact_match_is_preferred_immediately():
+    """An exact occurrence should return the maximum possible score."""
+    score = find_best_match_score(
+        "advanced bash",
+        "wrong advanced bash scripting guide",
+    )
+
+    assert score == 26
+
+
+def test_repeated_character_match_returns_best_score():
+    """The best repeated-character correction should determine the score."""
+    score = find_best_match_score(
+        "helllo",
+        "hello world",
+    )
+
+    # Five matching letters produce 10 points.
+    # Insertion at position 4 subtracts 2 points.
+    assert score == 8

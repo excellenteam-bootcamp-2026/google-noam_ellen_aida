@@ -55,21 +55,38 @@ def get_best_k_completions(prefix: str) -> list[AutoCompleteData]:
     return search_records(prefix, _records)
 
 
-def search_records(prefix: str, records: Iterable[SentenceRecord]) -> list[AutoCompleteData]:
-    """Return the five highest-ranked completions from already loaded records."""
+def search_records(
+    prefix: str,
+    records: Iterable[SentenceRecord],
+) -> list[AutoCompleteData]:
+    """Return the five highest-ranked completions from loaded records.
 
+    This temporary diagnostic version also reports how many records were
+    checked and how many produced a valid match.
+    """
     normalized_prefix = _normalize(prefix)
+
     if not normalized_prefix:
+        print("Records checked: 0")
+        print("Matching records: 0")
         return []
 
     results: list[AutoCompleteData] = []
+    records_checked = 0
+    matching_records = 0
+
     for record in records:
+        records_checked += 1
+
         score = _find_best_match_score(
             normalized_prefix,
             record.normalized_text,
         )
+
         if score is None:
             continue
+
+        matching_records += 1
 
         results.append(
             AutoCompleteData(
@@ -88,4 +105,8 @@ def search_records(prefix: str, records: Iterable[SentenceRecord]) -> list[AutoC
             result.offset,
         )
     )
+
+    print(f"Records checked: {records_checked:,}")
+    print(f"Matching records: {matching_records:,}")
+
     return results[:5]
