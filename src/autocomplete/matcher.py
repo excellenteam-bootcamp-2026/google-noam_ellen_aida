@@ -1,31 +1,7 @@
 """Find exact or one-character-error matches inside normalized sentences."""
 
-import time
-
 from autocomplete.models import Match
 from autocomplete.scoring import calculate_score
-
-_timing_totals: dict[str, float] = {
-    "exact_match": 0.0,
-    "candidate_generation": 0.0,
-    "substitution": 0.0,
-    "insertion": 0.0,
-    "deletion": 0.0,
-}
-
-
-def reset_timing() -> None:
-    """Reset the accumulated per-phase timing totals."""
-
-    for phase in _timing_totals:
-        _timing_totals[phase] = 0.0
-
-
-def print_timing() -> None:
-    """Print the accumulated per-phase timing totals."""
-
-    for phase, total_seconds in _timing_totals.items():
-        print(f"matcher.{phase} took {total_seconds:.4f} sec total")
 
 
 def find_best_match_score(
@@ -55,11 +31,7 @@ def find_best_match_score(
         return None
 
     # Fast path: Python performs this substring search in optimized code.
-    exact_start_time = time.perf_counter()
-    is_exact_match = normalized_prefix in normalized_sentence
-    _timing_totals["exact_match"] += time.perf_counter() - exact_start_time
-
-    if is_exact_match:
+    if normalized_prefix in normalized_sentence:
         exact_match = Match(
             edit_type="exact",
             edit_position=None,
@@ -67,41 +39,33 @@ def find_best_match_score(
         )
         return calculate_score(exact_match)
 
-    candidates_start_time = time.perf_counter()
     candidate_starts = _find_candidate_starts(
         normalized_prefix,
         normalized_sentence,
     )
-    _timing_totals["candidate_generation"] += time.perf_counter() - candidates_start_time
 
     best_score: int | None = None
 
     for position in candidate_starts:
-        substitution_start_time = time.perf_counter()
-        substitution_result = _try_substitution_at(
-            normalized_prefix,
-            normalized_sentence,
-            position,
+        match_results = (
+            _try_substitution_at(
+                normalized_prefix,
+                normalized_sentence,
+                position,
+            ),
+            _try_insertion_at(
+                normalized_prefix,
+                normalized_sentence,
+                position,
+            ),
+            _try_deletion_at(
+                normalized_prefix,
+                normalized_sentence,
+                position,
+            ),
         )
-        _timing_totals["substitution"] += time.perf_counter() - substitution_start_time
 
-        insertion_start_time = time.perf_counter()
-        insertion_result = _try_insertion_at(
-            normalized_prefix,
-            normalized_sentence,
-            position,
-        )
-        _timing_totals["insertion"] += time.perf_counter() - insertion_start_time
-
-        deletion_start_time = time.perf_counter()
-        deletion_result = _try_deletion_at(
-            normalized_prefix,
-            normalized_sentence,
-            position,
-        )
-        _timing_totals["deletion"] += time.perf_counter() - deletion_start_time
-
-        for match_result in (substitution_result, insertion_result, deletion_result):
+        for match_result in match_results:
             if match_result is None:
                 continue
 

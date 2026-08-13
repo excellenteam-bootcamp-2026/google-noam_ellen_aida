@@ -35,22 +35,6 @@ def _find_best_match_score(prefix: str, sentence: str) -> int | None:
     return find_best_match_score(prefix, sentence)
 
 
-def _reset_matcher_timing() -> None:
-    """Reset the matcher's per-phase timing totals through the matching component."""
-
-    from .matcher import reset_timing
-
-    reset_timing()
-
-
-def _print_matcher_timing() -> None:
-    """Print the matcher's per-phase timing totals through the matching component."""
-
-    from .matcher import print_timing
-
-    print_timing()
-
-
 def initialize(index_path: Path) -> None:
     """Load the prepared sentence index used by subsequent queries."""
 
@@ -96,8 +80,6 @@ def search_records(
     if not normalized_prefix:
         return []
 
-    _reset_matcher_timing()
-
     record_list = list(records)
     matching_elapsed_seconds = 0.0
     matching_records_count = 0
@@ -136,7 +118,6 @@ def search_records(
     )
 
     print(f"_find_best_match_score took {matching_elapsed_seconds:.4f} sec total")
-    _print_matcher_timing()
 
     elapsed_seconds = time.perf_counter() - start_time
     print(f"Records checked: {len(record_list):,}")
