@@ -5,43 +5,15 @@ from autocomplete.matcher import (
     _best_skip_position,
     _find_candidate_starts,
     _try_deletion_at,
-    _try_exact_match_at,
     _try_insertion_at,
     _try_substitution_at,
     find_best_match_score,
 )
 
 
-# Exact match tests
-
-def test_exact_match_at_start():
-    """Query matches exactly at the start of sentence."""
-    result = _try_exact_match_at("to be", "to be or not", 0)
-    assert result is not None
-    assert result.edit_type == "exact"
-    assert result.edit_position is None
-    assert result.matching_letters == 5
-
-
-def test_exact_match_in_middle():
-    """Query matches exactly in the middle of sentence."""
-    result = _try_exact_match_at("be", "to be or not", 3)
-    assert result is not None
-    assert result.edit_type == "exact"
-    assert result.edit_position is None
-    assert result.matching_letters == 2
-
-
-def test_exact_match_no_match():
-    """Query does not match at given position."""
-    result = _try_exact_match_at("xyz", "to be or not", 0)
-    assert result is None
-
-
-def test_exact_match_too_short():
-    """Not enough characters remaining for query."""
-    result = _try_exact_match_at("testing", "to be", 3)
-    assert result is None
+# Exact match is handled by find_best_match_score's fast substring path, not a
+# position-based helper. See test_find_best_match_exact, test_pdf_example_sentence,
+# and test_exact_match_is_preferred_immediately below for coverage.
 
 
 # Substitution tests
