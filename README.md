@@ -50,8 +50,10 @@ raw text files
 -> CLI displays results
 ```
 
-The implemented search is currently a linear scan over prepared records. The
-planned optimized n-gram index is not implemented yet.
+The implemented search is currently a linear scan over prepared records. An
+n-gram index was attempted (`feature/ngram-index`) but was reverted after
+measurements showed it made search slower in practice, so no optimized index
+is implemented yet.
 
 ## Public Modules
 
@@ -62,6 +64,7 @@ planned optimized n-gram index is not implemented yet.
 - `autocomplete.index.save_index(data: PreparedSentenceIndex, path: str | PathLike[str]) -> None`
 - `autocomplete.index.load_index(path: str | PathLike[str]) -> PreparedSentenceIndex`
 - `autocomplete.matcher.find_best_match_score(normalized_prefix: str, normalized_sentence: str) -> int | None`
+- `autocomplete.scoring.calculate_score(match: Match) -> int`
 - `autocomplete.service.initialize(index_path: Path) -> None`
 - `autocomplete.service.get_best_k_completions(prefix: str) -> list[AutoCompleteData]`
 - `autocomplete.cli.run_cli() -> None`
