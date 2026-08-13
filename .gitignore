@@ -74,6 +74,9 @@ Desktop.ini
 tmp/
 temp/
 
+# Presentation
+presentation/
+
 # Cursor
 .cursor/
 

@@ -1,6 +1,5 @@
 """Integration layer for autocomplete initialization and querying."""
 
-import time
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -41,10 +40,7 @@ def initialize(index_path: Path) -> None:
     if not index_path.is_file():
         raise FileNotFoundError(f"Prepared index not found: {index_path}")
 
-    load_start_time = time.perf_counter()
     loaded_records = list(_load_index(index_path))
-    load_elapsed_seconds = time.perf_counter() - load_start_time
-    print(f"_load_index took {load_elapsed_seconds:.4f} sec")
     if not all(isinstance(record, SentenceRecord) for record in loaded_records):
         raise TypeError("The prepared index must contain SentenceRecord objects")
 
